@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Photo to PDF Converter</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 480px; margin: 60px auto; text-align: center; color: #222; }
+  h1 { font-size: 22px; }
+  .card { border: 1px solid #ddd; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  input[type=file] { margin: 16px 0; }
+  button { background: #2563eb; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; }
+  button:hover { background: #1d4ed8; }
+  .tabs { margin-bottom: 16px; }
+  .tabs button { background: #eee; color: #222; margin: 0 4px; }
+  .tabs button.active { background: #2563eb; color: #fff; }
+  #status { margin-top: 12px; font-size: 14px; color: #555; }
+</style>
+</head>
+<body>
+  <h1>📄 Photo to PDF Converter</h1>
+  <div class="card">
+    <div class="tabs">
+      <button type="button" id="tabSingle" class="active" onclick="switchTab('single')">Single Photo</button>
+      <button type="button" id="tabMultiple" onclick="switchTab('multiple')">Multiple Photos</button>
+    </div>
+
+    <form id="singleForm">
+      <input type="file" name="file" id="singleFile" accept="image/*" required>
+      <br>
+      <button type="submit">Convert to PDF</button>
+    </form>
+
+    <form id="multipleForm" style="display:none;">
+      <input type="file" name="files" id="multipleFiles" accept="image/*" multiple required>
+      <br>
+      <button type="submit">Merge into one PDF</button>
+    </form>
+
+    <div id="status"></div>
+  </div>
+
+<script>
+function switchTab(tab) {
+  const isSingle = tab === 'single';
+  document.getElementById('singleForm').style.display = isSingle ? 'block' : 'none';
+  document.getElementById('multipleForm').style.display = isSingle ? 'none' : 'block';
+  document.getElementById('tabSingle').classList.toggle('active', isSingle);
+  document.getElementById('tabMultiple').classList.toggle('active', !isSingle);
+  document.getElementById('status').textContent = '';
+}
+
+async function handleSubmit(e, url, filename) {
+  e.preventDefault();
+  const status = document.getElementById('status');
+  status.textContent = 'Converting...';
+  const formData = new FormData(e.target);
+  try {
+    const res = await fetch(url, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const msg = await res.text();
+      status.textContent = 'Error: ' + msg;
+      return;
+    }
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    status.textContent = 'Done! PDF downloaded.';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+  }
+}
+
+document.getElementById('singleForm').addEventListener('submit', function (e) {
+  handleSubmit(e, '/api/pdf/convert', 'photo.pdf');
+});
+document.getElementById('multipleForm').addEventListener('submit', function (e) {
+  handleSubmit(e, '/api/pdf/convert-multiple', 'photos-merged.pdf');
+});
+</script>
+</body>
+</html>
